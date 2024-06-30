@@ -14,7 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+
+import static org.springframework.util.ObjectUtils.isEmpty;
 
 @RestController
 @RequiredArgsConstructor
@@ -32,32 +36,45 @@ public class UsuarioController {
     private final AuthenticationManager authenticationManager;
     private final UsuarioRepository usuarioRepository;
     private final TokenService tokenService;
+    private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/register")
-    public ResponseEntity register(@RequestBody RegisterDTO data) {
-        if (this.usuarioRepository.findByEmail(data.email()) != null) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (!PasswordValidator.isValidPassword(data.senha())) {
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body("Senha não atende aos requisitos mínimos de segurança.");
-        }
-        String senhaCriptografada = new BCryptPasswordEncoder().encode(data.senha());
-        Usuario novoUsuario = new Usuario(data.codigoIdentificador(), data.nome(), data.email(), data.cargo(), data.revenda(), senhaCriptografada, data.role());
+    public ResponseEntity register(@RequestBody RegisterDTO registerDTO) {
+        if (isEmpty(this.usuarioRepository.findByEmail(registerDTO.email()))) {
+            if (!PasswordValidator.isValidPassword(registerDTO.senha())) {
+                return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body("Senha não atende aos requisitos mínimos de segurança.");
+            }
+            String senhaCriptografada = new BCryptPasswordEncoder().encode(registerDTO.senha());
+            Usuario novoUsuario = new Usuario();
+            novoUsuario.setCodigoIdentificador(registerDTO.codigoIdentificador());
+            novoUsuario.setNome(registerDTO.nome());
+            novoUsuario.setEmail(registerDTO.email());
+            novoUsuario.setSenha(senhaCriptografada);
+            novoUsuario.setCargo(registerDTO.cargo());
+            novoUsuario.setRole(registerDTO.role());
 
-        this.usuarioRepository.save(novoUsuario);
+            this.usuarioRepository.save(novoUsuario);
 
-        return ResponseEntity.ok().build();
+            String token = tokenService.gerarToken(novoUsuario);
+
+            return ResponseEntity.ok(new LoginResponseDTO(novoUsuario.getNome(), token));
+        }
+
+        return ResponseEntity.badRequest().build();
+
     }
 
     @PostMapping("/login")
     public ResponseEntity login(@RequestBody AuthenticationDTO data) {
-        var userNamePassword = new UsernamePasswordAuthenticationToken((data.email()), data.senha());
-        var auth = this.authenticationManager.authenticate(userNamePassword);
+        UserDetails userDetails = usuarioRepository.findByEmail(data.email());
 
-        var token = tokenService.gerarToken((Usuario) auth.getPrincipal());
-
-        return ResponseEntity.ok(new LoginResponseDTO(token));
-
+        if (passwordEncoder.matches(userDetails.getPassword(), data.senha())) {
+            var userNamePassword = new UsernamePasswordAuthenticationToken((data.email()), data.senha());
+            var auth = this.authenticationManager.authenticate(userNamePassword);
+            var token = tokenService.gerarToken((Usuario) auth.getPrincipal());
+            return ResponseEntity.ok(new LoginResponseDTO(userNamePassword.getName(), token));
+        }
+        return ResponseEntity.badRequest().build();
     }
 
     @GetMapping
