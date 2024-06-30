@@ -4,7 +4,7 @@ Teste técnico Mobiauto
 * O sistema Mobiauto tem como objetivo fornecer uma poderosa ferramenta de gestão de Revendas
 de veículos
 ## 2. Visão Geral:
-o Para esse software foram utilizadas as seguintes tecnologias:
+### Para esse software foram utilizadas as seguintes tecnologias:
 * Java 17
 * Maven
 * Springboot
