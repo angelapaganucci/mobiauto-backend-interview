@@ -1,5 +1,16 @@
 # mobiauto-backend-interview
 Teste técnico Mobiauto
+# Informações Gerais
+Criei um front-end em angular para consumir a api do projeto, o front-end encontra-se no repositório
+https://github.com/angelapaganucci/login-page. 
+Para rodar o front-end é necessário ter o node instalado na máquina, após clonar o repositório, 
+acessar a pasta do projeto e rodar o comando npm install para instalar as dependências do 
+projeto e após isso rodar o comando ng serve para subir o servidor localmente.
+Com esse front, é possivel criar um usuario e depois de criado logar com esse usuario.
+![img_1.png](img_1.png)
+![img.png](img.png)
+![img_2.png](img_2.png)
+
 ## 1. Introdução:
 * O sistema Mobiauto tem como objetivo fornecer uma poderosa ferramenta de gestão de Revendas
 de veículos
