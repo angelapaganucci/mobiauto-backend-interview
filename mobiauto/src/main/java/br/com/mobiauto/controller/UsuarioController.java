@@ -12,9 +12,6 @@ import br.com.mobiauto.infra.security.TokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,7 +30,6 @@ import static org.springframework.util.ObjectUtils.isEmpty;
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
-    private final AuthenticationManager authenticationManager;
     private final UsuarioRepository usuarioRepository;
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
@@ -65,14 +61,11 @@ public class UsuarioController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity login(@RequestBody AuthenticationDTO data) {
-        UserDetails userDetails = usuarioRepository.findByEmail(data.email());
-
-        if (passwordEncoder.matches(userDetails.getPassword(), data.senha())) {
-            var userNamePassword = new UsernamePasswordAuthenticationToken((data.email()), data.senha());
-            var auth = this.authenticationManager.authenticate(userNamePassword);
-            var token = tokenService.gerarToken((Usuario) auth.getPrincipal());
-            return ResponseEntity.ok(new LoginResponseDTO(userNamePassword.getName(), token));
+    public ResponseEntity login(@RequestBody AuthenticationDTO authenticationDTO) {
+        Usuario usuario = this.usuarioRepository.findByEmail(authenticationDTO.email()).orElseThrow(() -> new RuntimeException("User not found"));
+        if (passwordEncoder.matches(authenticationDTO.senha(), usuario.getSenha())) {
+            String token = this.tokenService.gerarToken(usuario);
+            return ResponseEntity.ok(new LoginResponseDTO(usuario.getNome(), token));
         }
         return ResponseEntity.badRequest().build();
     }
